@@ -10,7 +10,7 @@
   const supabase = configured ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
-  const state = { records: [], deleteId: null, qrContext: null, turnstileToken: "", trashMode: false };
+  const state = { records: [], deleteId: null, qrContext: null, turnstileToken: "", turnstileWidgetId: null, trashMode: false };
 
   function show(id) {
     $$(".view").forEach((view) => { view.hidden = view.id !== id; });
@@ -104,12 +104,20 @@
       if (state.qrContext) { data.set("area_id", state.qrContext.areaId); data.set("equipment_id", state.qrContext.equipment); }
       const photo = await compressImage($("#photo-input").files[0]);
       if (photo) data.set("photo", photo); else data.delete("photo");
-      if (config.turnstileSiteKey) data.set("turnstile_token", state.turnstileToken);
+      if (config.turnstileSiteKey) {
+        if (!state.turnstileToken) throw new Error("Aguarde a verificação de segurança antes de registrar. Se ela não aparecer, desative bloqueadores para este site e recarregue a página.");
+        data.set("turnstile_token", state.turnstileToken);
+      }
       const response = await fetch(`${config.supabaseUrl}/functions/v1/create-label`, { method: "POST", headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}` }, body: data });
-      if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error || "Não foi possível registrar. Tente novamente."); }
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        if (response.status === 401) throw new Error("O serviço recusou a chave de acesso pública. Avise o administrador para verificar a configuração do Supabase.");
+        throw new Error(body.error || `Não foi possível registrar (erro ${response.status}). Tente novamente.`);
+      }
       form.reset();
+      resetTurnstile();
       show("success-view");
-    } catch (err) { error.textContent = err.message; error.hidden = false; }
+    } catch (err) { error.textContent = err instanceof TypeError ? "Não foi possível conectar ao serviço de registro. Verifique a internet e tente novamente." : err.message; error.hidden = false; resetTurnstile(); }
     finally { button.disabled = false; button.querySelector("span").textContent = "Registrar etiqueta"; }
   }
 
@@ -166,18 +174,27 @@
 
   function renderQrCodes() {
     const grid = $("#qr-grid"); grid.innerHTML = "";
+    if (!window.QRCode) {
+      grid.insertAdjacentHTML("beforeend", '<p class="alert warning">Os QR Codes visuais não carregaram. Os links por equipamento abaixo continuam funcionando; atualize a página ou verifique se o navegador bloqueou a biblioteca externa.</p>');
+    }
     AREAS.forEach((area) => area.equipment.forEach((equipment) => {
       const card = document.createElement("article"); card.className = "qr-card";
       const canvas = document.createElement("canvas"); const url = `${config.publicSiteUrl || location.href.split("#")[0]}#/registrar?area=${encodeURIComponent(area.id)}&equipment=${encodeURIComponent(equipment)}`;
-      card.append(canvas); card.insertAdjacentHTML("beforeend", `<h2>${escapeHtml(equipment)}</h2><p>Área ${escapeHtml(area.name)}</p>`); grid.append(card);
-      if (window.QRCode) QRCode.toCanvas(canvas, url, { width: 220, margin: 2, color: { dark: "#073b4c", light: "#ffffff" } });
+      if (window.QRCode) card.append(canvas);
+      card.insertAdjacentHTML("beforeend", `<h2>${escapeHtml(equipment)}</h2><p>Área ${escapeHtml(area.name)}</p><a href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir link de registro deste equipamento</a>`); grid.append(card);
+      if (window.QRCode) QRCode.toCanvas(canvas, url, { width: 220, margin: 2, color: { dark: "#073b4c", light: "#ffffff" } }).catch(() => { canvas.remove(); });
     }));
+  }
+
+  function resetTurnstile() {
+    state.turnstileToken = "";
+    if (window.turnstile && state.turnstileWidgetId !== null) window.turnstile.reset(state.turnstileWidgetId);
   }
 
   function initTurnstile() {
     if (!config.turnstileSiteKey) return;
     const script = document.createElement("script"); script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"; script.async = true;
-    script.onload = () => window.turnstile.render("#turnstile-slot", { sitekey: config.turnstileSiteKey, callback: (token) => { state.turnstileToken = token; }, "error-callback": () => { state.turnstileToken = ""; } }); document.head.append(script);
+    script.onload = () => { state.turnstileWidgetId = window.turnstile.render("#turnstile-slot", { sitekey: config.turnstileSiteKey, callback: (token) => { state.turnstileToken = token; }, "error-callback": () => { state.turnstileToken = ""; }, "expired-callback": () => { state.turnstileToken = ""; } }); }; document.head.append(script);
   }
 
   fillCatalog(); initTurnstile();
