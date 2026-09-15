@@ -22,6 +22,8 @@ alter table public.label_records enable row level security;
 
 revoke all on table public.label_records from anon;
 grant select, update, delete on table public.label_records to authenticated;
+grant select, insert, update, delete on table public.label_records to service_role;
+grant usage, select on sequence public.label_records_id_seq to service_role;
 
 create policy "authenticated staff can read records"
 on public.label_records for select
@@ -71,4 +73,6 @@ create table if not exists public.submission_attempts (
 
 alter table public.submission_attempts enable row level security;
 revoke all on table public.submission_attempts from anon, authenticated;
+grant select, insert, delete on table public.submission_attempts to service_role;
+grant usage, select on sequence public.submission_attempts_id_seq to service_role;
 create index if not exists submission_attempts_lookup_idx on public.submission_attempts (ip_hash, created_at desc);
