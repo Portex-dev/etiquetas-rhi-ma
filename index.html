@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Registro digital de etiquetas dos equipamentos RHI MA.">
+  <meta name="theme-color" content="#021d2b">
+  <title>Etiquetas RHI MA</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23073b4c'/%3E%3Cpath d='M17 17h22l10 10v20H17z' fill='%23fff'/%3E%3Ccircle cx='39' cy='27' r='4' fill='%23ef476f'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="brand.css">
+  <style>[hidden]{display:none!important}</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/registrar" aria-label="Etiquetas RHI MA — início">
+      <img class="brand-logo" src="assets/rhi-magnesita-logo-white.png" alt="RHI Magnesita">
+      <span class="product-name"><strong>Etiquetas</strong><small>Registro digital · MA</small></span>
+    </a>
+    <nav aria-label="Navegação principal">
+      <a href="#/registrar" data-nav="registrar">Registrar</a>
+      <a href="#/admin" data-nav="admin">Acesso administrativo</a>
+    </nav>
+  </header>
+
+  <main id="app" tabindex="-1">
+    <section id="register-view" class="view">
+      <div class="page-heading">
+        <p class="eyebrow">Registro de anomalia</p>
+        <h1 id="register-title">Nova etiqueta</h1>
+        <p id="equipment-context">Selecione a área e o equipamento para começar.</p>
+      </div>
+
+      <form id="label-form" class="form-card" novalidate>
+        <div class="step-group">
+          <div class="section-title"><span>1</span><h2>Identificação</h2></div>
+          <div class="form-grid two-columns">
+            <label>Nome do colaborador<input name="collaborator_name" autocomplete="name" maxlength="120" required></label>
+            <label>Matrícula<input name="registration_number" inputmode="numeric" maxlength="30" required></label>
+          </div>
+        </div>
+
+        <div class="step-group">
+          <div class="section-title"><span>2</span><h2>Equipamento</h2></div>
+          <div class="form-grid two-columns">
+            <label>Área<select id="area-select" name="area_id" required><option value="">Selecione</option></select></label>
+            <label>Equipamento<select id="equipment-select" name="equipment_id" required disabled><option value="">Selecione a área primeiro</option></select></label>
+          </div>
+          <div id="locked-equipment" class="locked-context" hidden></div>
+        </div>
+
+        <fieldset class="step-group">
+          <legend class="section-title"><span>3</span><strong>Tipo de etiqueta</strong></legend>
+          <div class="tag-options">
+            <label class="tag-option red"><input type="radio" name="tag_type" value="vermelha" required><span class="tag-swatch"></span><span><strong>Vermelha</strong><small>Manutenção</small></span></label>
+            <label class="tag-option yellow"><input type="radio" name="tag_type" value="amarela"><span class="tag-swatch"></span><span><strong>Amarela</strong><small>Projeto de melhoria</small></span></label>
+            <label class="tag-option blue"><input type="radio" name="tag_type" value="azul"><span class="tag-swatch"></span><span><strong>Azul</strong><small>Limpeza e organização</small></span></label>
+          </div>
+        </fieldset>
+
+        <div class="step-group">
+          <div class="section-title"><span>4</span><h2>Detalhes</h2></div>
+          <div class="form-grid">
+            <label>Descrição da anomalia<textarea name="anomaly_description" rows="4" maxlength="1000" placeholder="Descreva o que foi observado" required></textarea><small class="field-hint">Seja objetivo e inclua informações que ajudem a localizar o problema.</small></label>
+            <label>Localização aproximada<textarea name="location_description" rows="2" maxlength="500" placeholder="Ex.: lado direito, próximo ao motor" required></textarea></label>
+            <label class="file-field">Foto <span class="optional">Opcional · arquivo original de até 10 MB</span><input id="photo-input" name="photo" type="file" accept="image/*" capture="environment"><span id="photo-feedback" class="file-feedback">Tirar uma foto ou escolher da galeria</span></label>
+          </div>
+        </div>
+
+        <div id="turnstile-slot" class="turnstile-slot" aria-live="polite"></div>
+        <p class="privacy-note">Ao enviar, nome, matrícula e eventual foto serão armazenados exclusivamente para controle interno das etiquetas.</p>
+        <div id="form-error" class="alert error" role="alert" hidden></div>
+        <button class="primary-button" type="submit"><span>Registrar etiqueta</span><span aria-hidden="true">→</span></button>
+      </form>
+    </section>
+
+    <section id="success-view" class="view success-view" hidden>
+      <div class="success-card">
+        <div class="success-icon" aria-hidden="true">✓</div>
+        <p class="eyebrow">Registro concluído</p>
+        <h1>Etiqueta registrada</h1>
+        <p>As informações foram salvas com sucesso.</p>
+        <button id="new-record-button" class="primary-button" type="button">Realizar novo registro</button>
+      </div>
+    </section>
+
+    <section id="admin-view" class="view" hidden>
+      <div id="login-panel" class="auth-shell">
+        <form id="login-form" class="form-card compact">
+          <p class="eyebrow">Área protegida</p><h1>Acesso administrativo</h1>
+          <label>E-mail<input name="email" type="email" autocomplete="username" required></label>
+          <label>Senha<input name="password" type="password" autocomplete="current-password" required></label>
+          <div id="login-error" class="alert error" role="alert" hidden></div>
+          <button class="primary-button" type="submit">Entrar</button>
+        </form>
+      </div>
+
+      <div id="dashboard" hidden>
+        <div class="dashboard-heading">
+          <div><p class="eyebrow">Painel administrativo</p><h1>Registros de etiquetas</h1></div>
+          <div class="header-actions"><button id="trash-toggle" class="text-button" type="button">Ver lixeira</button><a class="secondary-button" href="#/qrcodes">QR Codes</a><button id="logout-button" class="text-button" type="button">Sair</button></div>
+        </div>
+        <div id="storage-alert" class="alert warning" hidden></div>
+        <div class="metrics">
+          <article><span>Novos</span><strong id="new-count">0</strong></article>
+          <article><span>Exibidos</span><strong id="shown-count">0</strong></article>
+          <article><span>Total</span><strong id="total-count">0</strong></article>
+        </div>
+        <form id="filters-form" class="filters">
+          <label>Área<select name="area"><option value="">Todas</option></select></label>
+          <label>Equipamento<select name="equipment"><option value="">Todos</option></select></label>
+          <label>Etiqueta<select name="tag"><option value="">Todas</option><option value="vermelha">Vermelha</option><option value="amarela">Amarela</option><option value="azul">Azul</option></select></label>
+          <label>Estado<select name="status"><option value="novo">Novos</option><option value="visto">Vistos</option><option value="">Todos</option></select></label>
+          <label>De<input name="from" type="date"></label><label>Até<input name="to" type="date"></label>
+          <div class="filter-actions"><button class="secondary-button" type="submit">Aplicar filtros</button><button id="clear-filters" class="text-button" type="button">Limpar</button><button id="export-button" class="text-button" type="button">Exportar Excel</button></div>
+        </form>
+        <div id="trash-notice" class="alert warning" hidden>Registros na lixeira podem ser restaurados por 30 dias. Depois desse prazo, serão removidos definitivamente com suas fotos.</div>
+        <div id="records-state" class="records-state"></div>
+        <div id="records-list" class="records-list"></div>
+      </div>
+    </section>
+
+    <section id="qr-view" class="view" hidden>
+      <div class="dashboard-heading"><div><p class="eyebrow">Identificação dos equipamentos</p><h1>QR Codes</h1><p>Imprima e instale o código no equipamento correspondente.</p></div><div class="header-actions"><button id="print-qrs" class="secondary-button" type="button">Imprimir</button><a class="text-button" href="#/admin">Voltar</a></div></div>
+      <div id="qr-grid" class="qr-grid"></div>
+    </section>
+  </main>
+
+  <dialog id="delete-dialog"><form method="dialog"><h2>Enviar para a lixeira?</h2><p>O registro ficará recuperável por 30 dias antes da exclusão definitiva.</p><div class="dialog-actions"><button value="cancel" class="text-button">Cancelar</button><button id="confirm-delete" value="confirm" class="danger-button">Enviar para lixeira</button></div></form></dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

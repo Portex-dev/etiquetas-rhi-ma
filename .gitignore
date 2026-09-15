@@ -1,0 +1,5 @@
+.sites-runtime/
+.playwright-cli/
+.env
+.env.*
+!config.example.js
